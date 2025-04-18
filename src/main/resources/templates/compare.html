@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档比对 - 文档比对系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .compare-container {
+            max-width: 800px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .drop-zone {
+            padding: 2rem;
+            text-align: center;
+            border: 2px dashed #6c757d;
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        .drop-zone-icon {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        .form-file-button {
+            margin-top: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a0cb1 0%, #1565e6 100%);
+        }
+        .standard-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+<!-- 导航栏 -->
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="bi bi-file-earmark-diff me-2"></i>文档比对系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-house me-1"></i>首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/compare"><i class="bi bi-arrow-left-right me-1"></i>文档比对</a>
+                    </li>
+                    <li class="nav-item" th:if="${session.currentUser.admin}">
+                        <a class="nav-link" href="/admin/users"><i class="bi bi-people me-1"></i>用户管理</a>
+                    </li>
+                    <li class="nav-item" th:if="${session.currentUser.admin}">
+                        <a class="nav-link" href="/admin/regulations"><i class="bi bi-journal-text me-1"></i>规章制度</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <!-- 用户信息与积分 -->
+                    <li class="nav-item me-3" th:if="${!session.currentUser.employee && !session.currentUser.admin}">
+                            <span class="nav-link">
+                                <i class="bi bi-coin me-1"></i>积分: <span th:text="${session.currentUser.credits}">0</span>
+                            </span>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i><span th:text="${session.currentUser.username}">用户</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>个人资料</a></li>
+                            <li><a class="dropdown-item" href="/payment/plans" th:if="${!session.currentUser.employee && !session.currentUser.admin}"><i class="bi bi-credit-card me-2"></i>会员套餐</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>退出登录</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div class="container compare-container">
+    <h2 class="text-center mb-4"><i class="bi bi-arrow-left-right me-2"></i>文档比对</h2>
+
+    <!-- 错误提示 -->
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <form action="/compare" method="post" enctype="multipart/form-data" id="compareForm">
+        <!-- 测试文档上传区域 -->
+        <div class="mb-4">
+            <h5><i class="bi bi-file-earmark-text me-2"></i>上传测试文档</h5>
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                <p class="mb-2">拖拽文件到此处或点击选择文件</p>
+                <p class="text-muted small">支持 .docx, .pdf, .txt 格式，最大 10MB</p>
+                <input type="file" name="file" id="fileInput" class="d-none" accept=".docx,.pdf,.txt" required>
+                <button type="button" class="btn btn-outline-primary form-file-button" onclick="document.getElementById('fileInput').click()">
+                    <i class="bi bi-folder me-2"></i>选择文件
+                </button>
+            </div>
+            <div class="mt-2 text-center" id="fileInfo" style="display:none;">
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i><span id="fileName"></span></span>
+                <button type="button" class="btn btn-sm btn-link text-danger" onclick="clearFile()">移除</button>
+            </div>
+        </div>
+
+        <!-- 标准文档选择区域 -->
+        <div class="mb-4">
+            <h5><i class="bi bi-files me-2"></i>选择比对标准</h5>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="standardOption" id="useSystemStandards" value="system" checked>
+                <label class="form-check-label" for="useSystemStandards">
+                    使用系统内置标准文档
+                </label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" name="standardOption" id="useCustomStandards" value="custom">
+                <label class="form-check-label" for="useCustomStandards">
+                    上传自定义标准文档
+                </label>
+            </div>
+
+            <!-- 自定义标准文档上传区域 -->
+            <div id="customStandardsSection" class="ps-4 mb-3" style="display:none;">
+                <div class="mb-2">
+                    <input type="file" name="standardFiles" multiple class="form-control" accept=".docx,.pdf,.txt">
+                </div>
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>您可以选择多个标准文档进行比对
+                </div>
+            </div>
+        </div>
+
+        <!-- 比对选项 -->
+        <div class="mb-4">
+            <h5><i class="bi bi-gear me-2"></i>比对选项</h5>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="useAI" id="useAI">
+                <label class="form-check-label" for="useAI">
+                    使用AI语义比对（更智能，可识别语义相似但表达不同的内容）
+                </label>
+            </div>
+            <div class="text-muted small mt-1 ps-4">
+                <i class="bi bi-info-circle me-1"></i>普通比对将逐字比较文档内容，AI比对将理解文本含义进行比较
+            </div>
+        </div>
+
+        <!-- 比对消耗积分提示 -->
+        <div class="alert alert-info mb-4" th:if="${!session.currentUser.employee && !session.currentUser.admin}">
+            <i class="bi bi-info-circle-fill me-2"></i>每次比对消耗 <strong>1</strong> 积分
+            <br>当前积分: <strong th:text="${session.currentUser.credits}">0</strong>
+            <a href="/payment/plans" class="alert-link">购买会员套餐获取更多积分</a>
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-play-circle me-2"></i>开始比对
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 页脚 -->
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5><i class="bi bi-file-earmark-diff me-2"></i>文档比对系统</h5>
+                <p>为企业和个人提供专业的文档比对服务，<br>确保文档内容符合标准规范。</p>
+            </div>
+            <div class="col-md-3">
+                <h5>快速链接</h5>
+                <ul class="list-unstyled">
+                    <li><a href="/" class="text-white">首页</a></li>
+                    <li><a href="/compare" class="text-white">文档比对</a></li>
+                    <li><a href="/payment/plans" class="text-white" th:if="${!session.currentUser.employee && !session.currentUser.admin}">会员套餐</a></li>
+                </ul>
+            </div>
+            <div class="col-md-3">
+                <h5>联系我们</h5>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-envelope me-2"></i>support@doccompare.com</li>
+                    <li><i class="bi bi-telephone me-2"></i>400-123-4567</li>
+                </ul>
+            </div>
+        </div>
+        <hr>
+        <div class="text-center">
+            <p>&copy; 2023 文档比对系统. 保留所有权利.</p>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 拖放文件上传功能
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileNameElement = document.getElementById('fileName');
+
+    // 标准文档选择切换
+    const useSystemStandards = document.getElementById('useSystemStandards');
+    const useCustomStandards = document.getElementById('useCustomStandards');
+    const customStandardsSection = document.getElementById('customStandardsSection');
+
+    useSystemStandards.addEventListener('change', function() {
+        if(this.checked) {
+            customStandardsSection.style.display = 'none';
+        }
+    });
+
+    useCustomStandards.addEventListener('change', function() {
+        if(this.checked) {
+            customStandardsSection.style.display = 'block';
+        }
+    });
+
+    // 拖放相关事件
+    ['dragover', 'dragenter'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'dragend'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateFileInfo();
+        }
+    });
+
+    fileInput.addEventListener('change', updateFileInfo);
+
+    function updateFileInfo() {
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            fileNameElement.textContent = `${file.name} (${formatFileSize(file.size)})`;
+            fileInfo.style.display = 'block';
+        } else {
+            fileInfo.style.display = 'none';
+        }
+    }
+
+    function clearFile() {
+        fileInput.value = '';
+        fileInfo.style.display = 'none';
+    }
+
+    function formatFileSize(size) {
+        if (size < 1024) {
+            return size + ' B';
+        } else if (size < 1024 * 1024) {
+            return (size / 1024).toFixed(2) + ' KB';
+        } else {
+            return (size / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+    }
+</script>
+</body>
+</html>

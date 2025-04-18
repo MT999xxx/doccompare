@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员套餐 - 文档比对系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .plans-container {
+            max-width: 1200px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .plan-card {
+            border-radius: 15px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        .plan-header {
+            padding: 2rem;
+            color: white;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .plan-duration {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+        .plan-features {
+            padding: 2rem;
+        }
+        .plan-feature {
+            margin-bottom: 0.75rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a0cb1 0%, #1565e6 100%);
+        }
+        .credit-info {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+            padding: 10px 15px;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        .recommended {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ff9800;
+            color: white;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border-radius: 0 15px 0 15px;
+        }
+    </style>
+</head>
+<body>
+<!-- 导航栏 -->
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/static"><i class="bi bi-file-earmark-diff me-2"></i>文档比对系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/static"><i class="bi bi-house me-1"></i>首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/compare"><i class="bi bi-arrow-left-right me-1"></i>文档比对</a>
+                    </li>
+                    <li class="nav-item" th:if="${session.currentUser.admin}">
+                        <a class="nav-link" href="/admin/users"><i class="bi bi-people me-1"></i>用户管理</a>
+                    </li>
+                    <li class="nav-item" th:if="${session.currentUser.admin}">
+                        <a class="nav-link" href="/admin/regulations"><i class="bi bi-journal-text me-1"></i>规章制度</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <!-- 用户信息与积分 -->
+                    <li class="nav-item me-3">
+                            <span class="nav-link">
+                                <i class="bi bi-coin me-1"></i>积分: <span th:text="${user.credits}">0</span>
+                            </span>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i><span th:text="${session.currentUser.username}">用户</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>个人资料</a></li>
+                            <li><a class="dropdown-item" href="/payment/plans"><i class="bi bi-credit-card me-2"></i>会员套餐</a></li>
+                            <li><a class="dropdown-item" href="/payment/history"><i class="bi bi-clock-history me-2"></i>支付记录</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>退出登录</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div class="container plans-container">
+    <h2 class="text-center mb-2"><i class="bi bi-stars me-2"></i>会员套餐</h2>
+    <p class="text-center text-muted mb-4">选择适合您的会员套餐，享受更多功能</p>
+
+    <!-- 错误提示 -->
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- 成功提示 -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- 用户状态信息 -->
+    <div class="text-center mb-4">
+        <div class="credit-info">
+            <i class="bi bi-coin me-1"></i>当前积分: <span th:text="${user.credits}">0</span>
+            <span th:if="${user.vip}" class="ms-3"><i class="bi bi-award me-1"></i>VIP会员 (到期时间: <span th:text="${#dates.format(user.vipExpiry, 'yyyy-MM-dd')}">2023-12-31</span>)</span>
+        </div>
+    </div>
+
+    <!-- 会员套餐卡片 -->
+    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+        <!-- 月度会员 -->
+        <div class="col" th:each="plan : ${plans}">
+            <div class="card plan-card">
+                <div th:if="${plan.name == '季度会员'}" class="recommended">推荐</div>
+                <div class="plan-header">
+                    <h3 th:text="${plan.name}">月度会员</h3>
+                    <div class="plan-price" th:text="'¥' + ${plan.price}">¥29.9</div>
+                    <div class="plan-duration" th:text="'每' + ${plan.durationMonths} + '个月'">每月</div>
+                </div>
+                <div class="plan-features">
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span th:text="'赠送 ' + ${plan.credits} + ' 积分'">赠送30积分</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>AI语义比对</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>优先客服支持</span>
+                    </div>
+                    <div class="plan-feature" th:if="${plan.durationMonths >= 3}">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>批量比对功能</span>
+                    </div>
+                    <div class="plan-feature" th:if="${plan.durationMonths >= 12}">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>定制化比对规则</span>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <form th:action="@{/payment/buy/{planId}(planId=${plan.id})}" method="post">
+                            <button type="submit" class="btn btn-primary btn-lg">立即购买</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 积分充值卡片 -->
+    <h3 class="text-center mb-4 mt-5"><i class="bi bi-coin me-2"></i>积分充值</h3>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        <!-- 积分套餐 -->
+        <div class="col">
+            <div class="card plan-card">
+                <div class="plan-header">
+                    <h3>基础积分包</h3>
+                    <div class="plan-price">¥49.9</div>
+                    <div class="plan-duration">100积分</div>
+                </div>
+                <div class="plan-features">
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>100次文档比对</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>AI语义比对</span>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <form action="/payment/buy/4" method="post">
+                            <button type="submit" class="btn btn-primary btn-lg">立即充值</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card plan-card">
+                <div class="recommended">推荐</div>
+                <div class="plan-header">
+                    <h3>标准积分包</h3>
+                    <div class="plan-price">¥129.9</div>
+                    <div class="plan-duration">300积分</div>
+                </div>
+                <div class="plan-features">
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>300次文档比对</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>AI语义比对</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>积分有效期1年</span>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <form action="/payment/buy/5" method="post">
+                            <button type="submit" class="btn btn-primary btn-lg">立即充值</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card plan-card">
+                <div class="plan-header">
+                    <h3>豪华积分包</h3>
+                    <div class="plan-price">¥399.9</div>
+                    <div class="plan-duration">1000积分</div>
+                </div>
+                <div class="plan-features">
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>1000次文档比对</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>AI语义比对</span>
+                    </div>
+                    <div class="plan-feature">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>积分永久有效</span>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <form action="/payment/buy/6" method="post">
+                            <button type="submit" class="btn btn-primary btn-lg">立即充值</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 页脚 -->
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5><i class="bi bi-file-earmark-diff me-2"></i>文档比对系统</h5>
+                <p>为企业和个人提供专业的文档比对服务，<br>确保文档内容符合标准规范。</p>
+            </div>
+            <div class="col-md-3">
+                <h5>快速链接</h5>
+                <ul class="list-unstyled">
+                    <li><a href="/static" class="text-white">首页</a></li>
+                    <li><a href="/compare" class="text-white">文档比对</a></li>
+                    <li><a href="/payment/plans" class="text-white">会员套餐</a></li>
+                    <li><a href="/payment/history" class="text-white">支付记录</a></li>
+                </ul>
+            </div>
+            <div class="col-md-3">
+                <h5>联系我们</h5>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-envelope me-2"></i>support@doccompare.com</li>
+                    <li><i class="bi bi-telephone me-2"></i>400-123-4567</li>
+                </ul>
+            </div>
+        </div>
+        <hr>
+        <div class="text-center">
+            <p>&copy; 2023 文档比对系统. 保留所有权利.</p>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
