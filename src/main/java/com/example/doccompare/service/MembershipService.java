@@ -71,7 +71,7 @@ public class MembershipService {
         payment.setUsername(username);
         payment.setAmount(plan.getPrice());
         payment.setDescription(plan.getName());
-        payment.setPlanId(planId);
+//        payment.setPlanId(planId);
         payment.setPaymentTime(new Date());
         payment.setStatus("待支付");
 
