@@ -6,11 +6,12 @@ public class PaymentRecord {
     private int id;
     private String username;
     private double amount;
-    private String paymentType;  // MEMBERSHIP, CREDIT
+    private String paymentType; // MEMBERSHIP, CREDITS, ADMIN_GRANT
     private String description;
-    private String transactionId;
     private Date paymentTime;
-    private String status;  // PENDING, SUCCESS, FAILED, CANCELLED
+    private String status; // SUCCESS, PENDING, FAILED
+    private String transactionId;
+    private String failureReason;
 
     public PaymentRecord() {
         this.paymentTime = new Date();

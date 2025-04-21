@@ -77,6 +77,10 @@ public class MembershipService {
         payments.put(String.valueOf(payment.getId()), payment);
         return payment;
     }
+    // 获取所有支付记录
+    public List<PaymentRecord> getAllPayments() {
+        return new ArrayList<>(payments.values());
+    }
 
     // 处理支付结果
     public boolean processPayment(int paymentId, boolean success) {
