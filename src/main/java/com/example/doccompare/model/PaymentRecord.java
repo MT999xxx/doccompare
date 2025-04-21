@@ -3,27 +3,26 @@ package com.example.doccompare.model;
 import java.util.Date;
 
 public class PaymentRecord {
-    private Long id;
+    private int id;
     private String username;
     private double amount;
-    private String paymentType;
+    private String paymentType;  // MEMBERSHIP, CREDIT
     private String description;
-    private Long planId;
     private String transactionId;
     private Date paymentTime;
-    private String status; // 待支付、已支付、已取消
+    private String status;  // PENDING, SUCCESS, FAILED, CANCELLED
 
-    // 构造函数
     public PaymentRecord() {
         this.paymentTime = new Date();
+        this.status = "PENDING";
     }
 
     // Getters and Setters
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -57,14 +56,6 @@ public class PaymentRecord {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public Long getPlanId() {
-        return planId;
-    }
-
-    public void setPlanId(Long planId) {
-        this.planId = planId;
     }
 
     public String getTransactionId() {

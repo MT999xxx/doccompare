@@ -88,6 +88,19 @@ public class UserService {
         }
         return null;
     }
+    // 根据用户名查找用户 - 添加这个方法
+    public User findByUsername(String username) {
+        return users.get(username);
+    }
+
+    // 更新用户信息 - 添加这个方法
+    public boolean updateUser(User user) {
+        if (users.containsKey(user.getUsername())) {
+            users.put(user.getUsername(), user);
+            return true;
+        }
+        return false;
+    }
 
     public List<User> getAllUsers() {
         return new ArrayList<>(users.values());
@@ -187,4 +200,5 @@ public class UserService {
             users.remove(key);
         }
     }
+
 }

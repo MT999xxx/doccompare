@@ -1,86 +1,88 @@
 package com.example.doccompare.controller;
 
+import com.example.doccompare.model.MembershipPlan;
 import com.example.doccompare.model.PaymentRecord;
 import com.example.doccompare.model.User;
-import com.example.doccompare.service.PaymentService;
+import com.example.doccompare.service.MembershipService;
+import com.example.doccompare.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
-import java.util.Date;
 import java.util.List;
 
 @Controller
-@RequestMapping("/admin")
+@RequestMapping("/payment")
 public class PaymentController {
 
-    private final PaymentService paymentService;
+    @Autowired
+    private MembershipService membershipService;
 
     @Autowired
-    public PaymentController(PaymentService paymentService) {
-        this.paymentService = paymentService;
-    }
+    private UserService userService;
 
-    @GetMapping("/payment-records")
-    public String viewPaymentRecords(
-            @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "username", required = false) String username,
-            @RequestParam(name = "paymentType", required = false) String paymentType,
-            @RequestParam(name = "status", required = false) String status,
-            @RequestParam(name = "startDate", required = false) String startDate,
-            @RequestParam(name = "endDate", required = false) String endDate,
-            Model model,
-            HttpSession session) {
-
-        // 检查是否管理员
+    // 查看会员套餐页面
+    @GetMapping("/plans")
+    public String viewPlans(Model model, HttpSession session) {
+        // 获取当前用户
         User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null || !currentUser.isAdmin()) {
+        if (currentUser == null) {
             return "redirect:/login";
         }
 
-        // 获取支付记录列表（这里需要实现分页和筛选逻辑）
-        List<PaymentRecord> payments = paymentService.getPaymentRecords(
-                username, paymentType, status, startDate, endDate, page);
+        // 获取所有会员套餐
+        List<MembershipPlan> plans = membershipService.getAllPlans();
+        model.addAttribute("plans", plans);
 
-        // 获取总页数和统计信息
-        int totalPages = paymentService.getTotalPages(username, paymentType, status, startDate, endDate);
-        double totalAmount = paymentService.getTotalAmount(username, paymentType, status, startDate, endDate);
-        int successCount = paymentService.getSuccessCount(username, paymentType, status, startDate, endDate);
-        int totalCount = paymentService.getTotalCount(username, paymentType, status, startDate, endDate);
+        System.out.println("加载了" + plans.size() + "个会员套餐");
 
-        // 添加到模型
-        model.addAttribute("payments", payments);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("totalAmount", totalAmount);
-        model.addAttribute("successCount", successCount);
-        model.addAttribute("totalCount", totalCount);
-
-        return "admin/payment-records";
+        return "payment/plans";
     }
 
-    @PostMapping("/payment-records/update-status")
-    public String updatePaymentStatus(
-            @RequestParam("id") Long id,
-            @RequestParam("status") String status,
-            HttpSession session,
-            Model model) {
+    // 处理套餐购买请求
+    @PostMapping("/buy")
+    public String buyPlan(@RequestParam("planId") int planId,
+                          HttpSession session,
+                          RedirectAttributes redirectAttributes) {
 
-        // 检查是否管理员
         User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null || !currentUser.isAdmin()) {
+        if (currentUser == null) {
             return "redirect:/login";
         }
 
         try {
-            paymentService.updatePaymentStatus(id, status);
-            model.addAttribute("message", "支付状态已成功更新");
+            // 创建支付记录并直接处理成功
+            PaymentRecord paymentRecord = membershipService.createPayment(currentUser.getUsername(), planId);
+            boolean success = membershipService.processPayment(paymentRecord.getId(), true);
+
+            if (success) {
+                redirectAttributes.addFlashAttribute("message", "购买成功！您的会员权益已激活。");
+                // 更新session中的用户信息
+                session.setAttribute("currentUser", userService.findByUsername(currentUser.getUsername()));
+            } else {
+                redirectAttributes.addFlashAttribute("error", "支付处理失败，请稍后重试。");
+            }
+            return "redirect:/payment/plans";
         } catch (Exception e) {
-            model.addAttribute("error", "更新支付状态失败: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "处理订单时出错: " + e.getMessage());
+            return "redirect:/payment/plans";
+        }
+    }
+
+    // 查看支付历史
+    @GetMapping("/history")
+    public String viewPaymentHistory(Model model, HttpSession session) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
         }
 
-        return "redirect:/admin/payment-records";
+        List<PaymentRecord> payments = membershipService.getUserPayments(currentUser.getUsername());
+        model.addAttribute("payments", payments);
+
+        return "payment/history";
     }
 }

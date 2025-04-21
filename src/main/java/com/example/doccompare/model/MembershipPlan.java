@@ -1,32 +1,30 @@
-// MembershipPlan.java
 package com.example.doccompare.model;
 
 public class MembershipPlan {
-    private Long id;
+    private int id;
     private String name;
     private double price;
     private int durationMonths;
     private int credits;
-    private boolean active = true;
+    private String description;
 
-    // 构造函数
     public MembershipPlan() {}
 
-    public MembershipPlan(Long id, String name, double price, int durationMonths, int credits) {
+    public MembershipPlan(int id, String name, double price, int durationMonths, int credits, String description) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.durationMonths = durationMonths;
         this.credits = credits;
-        this.active = true;
+        this.description = description;
     }
 
     // Getters and Setters
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -62,11 +60,11 @@ public class MembershipPlan {
         this.credits = credits;
     }
 
-    public boolean isActive() {
-        return active;
+    public String getDescription() {
+        return description;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
